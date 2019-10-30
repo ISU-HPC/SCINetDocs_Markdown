@@ -206,7 +206,8 @@ If your job runs for longer than a few minutes then please use the interactive m
 # Text Editors
 The following are a few of the common text editors that are available on the system:
 
-```$ vi
+```
+$ vi
 $ emacs
 $ nano
 ```
