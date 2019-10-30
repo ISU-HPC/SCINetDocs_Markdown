@@ -51,7 +51,8 @@ We recommend setting up a config file to make logging in easier and use settings
 
 Create a ~/.ssh/config entry similar to this:
 
-```Host scinet-login
+```
+Host scinet-login
 
 HostName login.scinet.science
 
@@ -183,7 +184,8 @@ To view a list of available applications type
 
 This will result in the output similar to the one below:
 
-```abyss/gcc/64/1.5.2
+```
+abyss/gcc/64/1.5.2
 allpathslg/gcc/64/52488
 atlas/gcc/64/3.10.2 
 blast+/gcc/64/2.2.30
@@ -251,7 +253,8 @@ You can run jobs on the cluster by writing short scripts that will get executed 
 
 Here is an example of a batch job submission bash script (e.g. blast_job.sh, for running BLAST):
 
-```#!/bin/bash
+```
+#!/bin/bash
 #SBATCH --job-name="blastp" #name of the job submitted
 #SBATCH -p short #name of the queue you are submitting job to
 #SBATCH -N 1 #number of nodes in this job
