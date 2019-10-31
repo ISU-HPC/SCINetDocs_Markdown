@@ -12,7 +12,7 @@
 * [Modules](#modules)
   * [Useful Modules Commands](#useful-modules-commands)
   * [Loading and Unloading Modules](#loading-and-unloading-modules)
-  * [Module: command not found](#module:-command-not-found)
+  * [Module: command not found](#module-command-not-found)
 * [Quotas on Home and Project Directories](#quotas-on-home-and-project-directories)
   * [Local Sharing of Files with Other Users](#local-sharing-of-files-with-other-users)
 * [Running Application Jobs on Compute Nodes](#running-application-jobs-on-compute-nodes)
