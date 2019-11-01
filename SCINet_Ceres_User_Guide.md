@@ -299,3 +299,289 @@ The error message module: command not found is sometimes encountered when switch
 
 `$ source /etc/profile.d/modules.sh`
 
+# Quotas on Home and Project Directories
+
+Each file on a Linux system is associated with one user and one group. On Ceres files in user's home directory by default are associated with the user's primary group, that has the same name as user's SCINet account. Files in the project directories by default are associated with the project groups. Group quotas that control the amount of data stored are enabled on both home and project directories.
+
+At login current usage and quotas are displayed for all groups that user belongs to. The my_quotas command provides the same output:
+
+`$ my_quotas`
+
+If users need more storage than what is available in the home directory, they should request a project directory to be created by filling out the form at https://e.arsnet.usda.gov/sites/OCIO/scinet/accounts/SitePages/Project_Allocation_Request.aspx . Several users may work on the same project and share corresponding project directory.
+
+Project directories are located in the 1.8PB BeeGFS space that is mounted on all nodes as /project. Directories in /project are not backed up, however users can copy important data from a directory in /project to a corresponding directory in /KEEP in ZFS space that is backed up nightly using zsend. It is not recommended to run jobs from a directory in /KEEP .
+
+Since on Ceres usage and quotas are based on groups, it's important to have files in the home directories to be associated with the users' primary groups, and files in the project directories to be associated with project groups. Sometimes it may happen that files that were originally located in a home directory, were later moved to a project directory with the group ownership preserved. In this case even though files will be located in a project directory, they still will count against home directory quota. To fix this, change the group ownership of these files to the project directory group. The following command will change group association of all files in the project directory in /project (it may take a while if there are too many files in the directory):
+
+`$ chgrp -R proj-<project_directory_name> /project/<project_directory_name>`
+
+Similar command will change group association of all files in the project directory in /KEEP
+
+`$ chgrp -R proj-<project_directory_name> /KEEP/<project_directory_name>`
+
+To search for files owned by your primary group in a project directory, issue:
+
+```
+$ find /project/<project_directory_name> -group <SCINet UserID> -type f
+$ find /KEEP/<project_directory_name> -group <SCINet UserID> -type f
+```
+
+## Local Sharing of Files with Other Users
+Users who would like to share files with other users can use the shared_files project directory located at:
+
+/project/shared_files
+
+To keep the shared_files directory uncluttered please create a dedicated folder within /project/shared_files for your files. Files stored in the shared_files folder by default are associated with user's primary group that has 1 GB quota.
+
+NOTE: Files created in the shared_files folder by default are accessible to everybody on the system. Thus, this mechanism for sharing should only be used for files of a non-confidential nature.
+
+# Running Application Jobs on Compute Nodes
+
+Users will run their applications on the cluster in either interactive mode or in batch mode. Interactive mode (salloc or srun command) is familiar to anyone using the command line: the user specifies an application by name and various arguments, hits Enter, and the application runs. However, in interactive mode on a cluster the user is automatically switched from using a login node to using a compute node. This keeps all the intense computation off the login nodes, so that login nodes can have all the resources necessary for managing the cluster. You should always use interactive mode when you are running your application but not using batch mode. **Please do not run your applications on the login nodes, use the interactive mode.**
+
+Interactive mode should only be used when interaction is required, for example when preparing or debugging a pipeline. Otherwise the batch mode should be used. Batch mode requires the user to write a short job script (please see the examples below or use **Ceres Job Script Generator** at https://e.arsnet.usda.gov/sites/OCIO/scinet/accounts/ceres_job_script_generator/Home.aspx). Ceres uses Simple Linux Utility for Resource Management (SLURM) to submit interactive and batch jobs to the compute nodes. Requested resources can be specified either within the job script or on the *salloc/srun/sbatch* commands.
+
+## Partitions or Queues
+
+Compute jobs are run on functional groups of nodes called partitions or queues. Each different partition has different capabilities (e.g. regular memory versus high memory nodes) and resource restrictions (e.g. time limits on jobs). Some nodes appear in several partitions. The following table lists main partitions. The low partitions allow all users submit short jobs to the new nodes that have been purchased by several groups.
+
+Name | Nodes | Maximum Simulation Time | Default Memory per Core | Function
+--- | --- |--- |--- |---
+short	| 55	| 48 hours	| 3100 MB	| short simulation queue (default)
+medium	| 25	| 7 days	| 3100 MB	| medium length simulation queue
+long	| 15	| 21 days	| 3100 MB	long simulation queue
+long60	| 2	| 60 days	| 3100 MB	| extra long simulation queue
+mem	| 5	| 7 days	| 12750 MB	| large memory queue
+longmem	| 1	| 1000 hours	| 12750 MB	| long simulation large memory queue
+mem768	| 1	| 7 days	| 12750 MB	| new node with 768GB of memory
+mem768-low	| 2	| 2 hours	| 19000 MB	| new nodes with 768GB of memory
+mem-low	| 3	| 2 hours	| 38200 MB	| new nodes with 1.5TB of memory
+gpu-low	| 1	| 2 hours	| 5250 MB	| new GPU node
+brief-low	| 18	| 2 hours	| 5250 MB	| new nodes with 128GB of memory
+debug	| 1	| 1 hour	| 3100 MB	| for testing scripts and runs before submitting them
+
+In addition, **at most 400 cores can be used by all simultaneously running jobs per user** across all queues. Any additional jobs will be queued but won't start. Each user can submit at most 100 simultaneous jobs to the queue. Currently there is no other limits specific to the partitions.
+
+To get current details on all partitions use the following scontrol command:
+
+`$ scontrol show partitions`
+
+**Allocation of cores:** On Ceres hyper-threading is turned on. That means that each physical core on a node appears as two separate processors to the operating system and can run two threads. The smallest unit of allocation per job is a single hyper-threaded core, or 2 logical cores, corresponding to specifying *-n 2* on *salloc/srun/sbatch* commands (i.e. jobs can not access a single hyper-thread within a core). If a job requests an odd number of cores (*-n 1, 3, ...*) SLURM will automatically allocate the next larger even number of cores.
+
+**Allocation of memory:** Each allocated core comes with a default amount of memory listed in the table above for different SLURM partitions. If a job attempts to use more memory than what was allocated to a job it will be killed by SLURM. In order to make more memory available to a given job, users can either request the appropriate total number of cores or request more memory per core via the *--mem-per-cpu* flag to *salloc/srun/sbatch* commands. For example, to support a job that requires 60GB of memory in the short partition, a user could request 20 logical cores (*-n 20*) with their default allocation of 3GB or 2 logical cores with 30GB of memory per core via *--mem-per-cpu 30GB* (please note that a single hyper-threaded core is the smallest unit of allocation). Of course, any other mix of memory per core and total number of cores totaling 60GB would work as well depending on the CPU characteristics of the underlying simulation software.
+
+**Allocation of time:** When submitting interactive or batch job users can specify time limit by using *-t* (*–time=*) option on *salloc/srun/sbatch* commands. If time limit is not explicitly specified, it will be set to the partition's Maximum Simulation Time (see the table above).
+
+
+## Interactive Mode
+
+A user can request an interactive session on Ceres using SLURM's srun or salloc commands. The simplest way to request an interactive job is by entering the command salloc:
+
+`$ salloc`
+
+which will place you in an interactive shell. This interactive shell has a duration of 2 days and will request a single hyper-threaded core (2 logical cores) with 6200 MB of allocated memory on one of the compute nodes. To prevent users from requesting interactive nodes and then not using them, there is an inactivity timeout set up. If there is no command running on a node for an hour and a half, the job will be terminated. Otherwise the interactive job is terminated when the user types exit or the allocated time runs out.
+
+For more fine grained control over the interactive environment you can use the srun command. Issue the srun command from a login node. Command syntax is:
+
+`$ srun --pty -p queue -t hh:mm:ss -n tasks -N nodes /bin/bash -l`
+
+Option |Value
+--- | ---
+-p |	queue (partition)
+-t	| maximum runtime
+-n	| number of cores
+-N	| number of nodes
+
+The following example commands illustrate an interactive session where the user requests 1 hour in the short queue, using 1 compute node and 20 logical cores (half of the cores available on the original compute node), using the bash shell, followed by a BLAST search of a protein database. 
+
+Start the interactive session:
+
+`$ srun --pty -p short -t 01:00:00 -n 20 -N1 /bin/bash -l`
+
+Load NCBI-BLAST+ on the compute node:
+
+`$ module load blast+ `
+
+Uncompress the nr.gz FASTA file that contains your sequence database:
+
+`$ gzip -d nr.gz`
+
+Generate the blast database:
+
+`$ makeblastdb -in nr -dbtype prot`
+
+Search the nr database in serial mode with a set of queries in the FASTA file blastInputs.fa:
+
+`$ blastp -db nr -query blastInputs.fa -out blastout`
+
+Return to the login node:
+
+`$ exit`
+
+## Requesting the proper number of nodes and cores
+
+SLURM allows you to precisely choose the allocation of compute cores across nodes. Below are a number of examples that show different ways to allocate an 8 core job across the Ceres cluster
+
+*salloc/srun/sbatch* options | core distribution across nodes
+--- | ---
+-n 8                       | pick any available cores across the cluster (may be on several nodes or not)
+-n 8 -N 8                  | spread 8 cores across 8 distinct nodes (i.e. one core per node)
+-n 8 --ntasks-per-node=1   | same as -n 8 -N 8
+-n 8 -N 4                 |  request 8 cores on 4 nodes (however the spread might be uneven, i.e. one node could end up with 5 cores and one core each for the remaining 3 nodes)
+-n 8 --ntasks-per-node=2  |  request 8 cores on 4 nodes with 2 cores per node
+-n 8 -N 1                  | request 8 cores on a single node
+-n 8 --ntasks-per-node=8   | same as -n 8 -N 1
+
+## Batch Mode
+### Serial Job
+
+Jobs can be submitted to various partitions or queues using SLURM's sbatch command. Following is an example of how to run a blastp serial job using a job script named "blastSerialJob.sh". The content of blastSerialJob.sh is as follows:
+
+```
+#!/bin/bash
+#SBATCH --job-name="blastp"   #name of this job 
+#SBATCH -p short              #name of the partition (queue) you are submitting to
+#SBATCH -N 1                  #number of nodes in this job
+#SBATCH -n 40                 #number of cores/tasks in this job, you get all 20 physical cores with 2 threads per core with hyper-threading 
+#SBATCH -t 01:00:00           #time allocated for this job hours:mins:seconds
+#SBATCH --mail-user=emailAddress   #enter your email address to receive emails 
+#SBATCH --mail-type=BEGIN,END,FAIL #will receive an email when job starts, ends or fails
+#SBATCH -o "stdout.%j.%N"     # standard output, %j adds job number to output file name and %N adds the node name
+#SBATCH -e "stderr.%j.%N"     #optional, prints our standard error
+date                          #optional, prints out timestamp at the start of the job in stdout file
+module load blast+            #loading latest NCBI BLAST+ module 
+blastp -db nr -query blastInputs -out blastout  # protein blast search against nr database
+date                          #optional, prints out timestamp when the job ends
+#End of file
+```
+
+Launch the job like this: 
+
+`$ sbatch blastSerialJob.sh`
+
+### Running a simple OpenMP Job
+
+The following example will demonstrate how to use threads. We will use the following OpenMP C code to print "hello world" on each thread. First copy and paste this code into a file, e.g. "testOpenMP.c".
+
+```
+#include <omp.h>
+#include <stdio.h>
+int main(int argc, char* argv[]){
+ int id;
+ #pragma omp parallel private(id)
+  {
+  id=omp_get_thread_num();
+  printf("%d: hello world \n",id);
+ }
+ return 0;
+}
+```
+
+Now load the gcc module and compile the code :
+
+```
+$ module load gcc
+$ gcc testOpenMP.c -fopenmp -o testOpenMP
+```
+
+Now create a batch job script (OMPjob.sh) to test number of threads you requested:
+
+```
+#!/bin/bash
+#SBATCH --job-name=OpenMP
+#SBATCH -p short
+#SBATCH -N 1
+#SBATCH -n 20
+#SBATCH --threads-per-core=1
+#SBATCH -t 00:30:00
+#SBATCH -o "stdout.%j.%N"
+#SET the number of openmp threads
+export OMP_NUM_THREADS=20
+./testOpenMP
+# End of file
+```
+
+Launch the job using the batch script like this: 
+
+`$ sbatch OMPjob.sh`
+
+The stdout* file from the above job script should contain 20 lines with "hello world" from each thread.
+
+### Parallel MPI Job
+
+The following is the example to run Hybrid RAxML which uses both MPI and PTHREADS. It will start 2 MPI processes (one per node) and each process will run 40 threads (one thread per logical core).
+
+Create a SLURM script like this (for example, RAxMLjob.sh, but use your own alignment file rather than "align.fasta"):
+
+```
+#!/bin/bash
+#SBATCH --job-name=raxmlMPI
+#SBATCH -p short
+#SBATCH -N 2
+#SBATCH --ntasks-per-node=40
+#SBATCH -t 01:00:00
+#SBATCH -o "stdout.%j.%N"
+# We requested 2 nodes, 40 logical cores per node for a total of 80 logical cores for this job
+module load raxml            #loading latest raxml module, which will also load an MPI module 
+mpirun -np 2 raxmlHPC-MPI-AVX -T 40 -n raxmlMPI -f a -x 12345 -p 12345 -m GTRGAMMA -# 100 -s align.fasta
+# End of file
+```
+
+And execute it with sbatch:
+
+`$ sbatch RAxMLjob.sh`
+
+## Useful SLURM Commands
+
+Command | Description | Example
+--- | --- | ---
+squeue	| Gives information about jobs	| *squeue* or *squeue -u jane.webb*
+scancel	| Stop and remove jobs	| *scancel <job id>* or *scancel-u jane.webb*
+sinfo	| Gives information about queues (partitions) or nodes	| *sinfo* or *sinfo -N -l*
+scontrol | Provides more detailed information about jobs, partitions or nodes | *scontrol show job <job id>* or *scontrol show partition <partition name>* or *scontrol show nodes*
+
+## Local Scratch Space on Large Memory Nodes
+
+Each of the large memory nodes (available via the *mem* queue) has ~9 TB of fast local temporary data file storage space at **/local/scratch** supported by SSDs. This local scratch space is significantly faster and supports more Input/Output Operations Per Second (IOPS) than the mounted filesystems on which the home and project directories reside. Thus, if you plan to compute on an existing large data set (such as a sequence assembly job) it might be beneficial to temporarily stage all your input data to /local/scratch at the beginning of your job using $TMPDIR variable (which is unique for each job), then do all your computation on /local/scratch.There is no need to remove your local data at the end of your job, since SlurmLURM will automatically remove $TMPDIR. This could be accomplished by adding the following commands to your SLURM script (make sure to adjust the paths to your data appropriately). We assume that the data set is in /projects/my_project/data and you should replace the path with your data path.
+
+```
+#!/bin/bash
+#SBATCH --job-name="my sequence assembly"   #name of the job submitted
+#SBATCH -p mem                #name of the queue you are submitting job to
+#SBATCH -N 1                  #number of nodes in this job
+#SBATCH -n 40                 #number of cores/tasks in this job, you get all 20 cores with 2 threads per core with hyper-threading 
+#SBATCH -t 01:00:00           #time allocated for this job hours:mins:seconds
+#SBATCH --mail-user=emailAddress   #enter your email address to receive emails 
+#SBATCH --mail-type=BEGIN,END,FAIL #will receive an email when job starts, ends or fails
+#SBATCH -o "stdout.%j.%N"     # standard out %j adds job number to output file name and %N adds the node name
+#SBATCH -e "stderr.%j.%N"     #optional, it prints out standard error
+
+# start staging data to the job temporary directory in /local/scratch
+cd $TMPDIR
+cp -r /projects/my_project/data ./
+
+# add regular job commands like module load and running scientific software
+
+# copy output data off of local scratch
+cp -r output /projects/my_project/output
+
+#End of file
+```  
+
+Regular compute nodes also have (smaller) local scratch space.
+
+# Compiling Software, Installing R/Perl/Python Packages and Using Containers
+
+The Ceres log-in nodes provide access to a wide variety of scientific software tools which users can access and use via the module system. These software tools were compiled and optimized for use on Ceres by members of the Virtual Research Support Core (VRSC) team. Most users will find the software tools they need for their research among the provided packages and thus will not need to compile their own software packages.
+
+If users would like to compile their own software with GNU compilers, they will need to load gcc module. It is recommended to compile on **compute** nodes, and not on the login node. However, before embarking on compiling their own software packages we strongly encourage users to contact the VRSC team to ensure that their required tool(s) might not be better distributed as a shared package within the official software modules tree. All new software needs to be approved by SOC committee before being centrally installed on the system. To request a new software package to be installed, submit SCINet Application Request form at https://e.arsnet.usda.gov/sites/OCIO/scinet/_layouts/15/start.aspx#/Lists/Software%20Approval/Main1.aspx .
+
+The popular R, Perl and Python languages have many packages/modules available. Some of the packages are installed on Ceres and are available with the r/perl/python_2/python_3 modules. To see the list of installed packages, use "module help <module_name>" command. If users need packages that are not available, they can either request VRSC to add packages, or they can download and install packages in their home/project directories. We recommend installing packages in the project directories since collaborators on the same project most probably would need same packages. In addition, home quotas are much lower than project directories quotas. A separate document named "Installing R/Perl/Python Packages on Ceres" provides instructions and examples on how to add packages/modules for these languages.
+
+Some software packages may not be available for the version of Linux running on the Ceres cluster. In this case users may want to run containers. Containers are self-contained application execution environments that contain all necessary software to run an application or workflow, so users don't need to worry about installing all the dependencies. There are many pre-built container images for bioinformatics applications available for download and use. A separate document named "Singularity on Ceres" provides instructions and examples on how to download and run Docker and Singularity containers on Ceres.
+
+# Citation/Acknowledgment
+
+Add the following sentence as an acknowledgment for using CERES as a resource in your manuscripts meant for publication:  
+
+`This research used resources provided by the SCINet project of the USDA Agricultural Research Service, ARS project number 0500-00093-001-00-D.`
