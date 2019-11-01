@@ -35,3 +35,5 @@ Server port: 7777
 4.	Log in.
 
 ![](/assets/img/CLC2.png)
+
+After successful login, you should see a directory CLC-<your project> in the top left window. 
