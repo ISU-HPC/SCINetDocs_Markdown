@@ -79,6 +79,38 @@ When done using RStudio Server, terminate the job by:
    scancel -f 214664
 ```
 
+![](/assets/img/RStudio.png)
+
 4. (*If using VPN*) Point your web browser to the listed hostname / port (in this example, http://sn-cn-6-0:57088), then enter your SCINet user name and the temporary password (valid only for this job only; in this example *4wjRJfpIvQDtKdDZpmzY*)
 
-![](/assets/img/RStudio.png)
+# Stopping RStudio Server
+
+1. Click the Quit Session (“power”) button in the top-right corner of the RStudio window (see picture), or select “File > Quit Session...”
+2. After the “R Session has Ended” window appears, cancel the SLURM job from the Ceres command line. E.g., if the job ID is 214664:
+`[jane.user@sn-cn-8-1 ~]$ scancel -f 214664`
+  * Be sure to specify the scancel -f / --full option as demonstrated above.
+3. (If using SSH Port Forwarding instead of VPN) Close the terminal / PuTTY window in which the SSH tunnel was established.
+
+# SSH Port Forwarding (instead of VPN)
+
+## Windows + PuTTY users
+1. Open a new PuTTY window
+2. In Session > Host Name, enter: **login.scinet.science**
+3. In the category: Connection > SSH > Tunnels, enter 8787 in Source Port, the Destination hostname:port listed in the job script output (in this example: **sn-cn-6-0:57088**), click “Add”, then click “Open”:
+4. Point your browser to http://localhost:8787. Enter your SCINet user name, and one-time password listed in the job script output file.
+
+## macOS / Linux users
+
+1. Enter the use a new macOS/Linux terminal window and enter the SSH command listed in the job script output file. In this example:
+`ssh -N -L 8787:sn-cn-6-0:57088 jane.user@login.scinet.science`
+There will be no output after logging in. Keep the window / SSH tunnel open for the duration of the RStudio session. 
+2. Point your browser to http://localhost:8787. Enter your SCINet user name, and one-time password listed in the job script output file.
+
+# Requesting Additional Compute Resources
+
+The default job resources (4 hour time limit, 1 processor core, 6600 MB memory) may be customized by:
+* sbatch command-line options, e.g., to specify an 8-hour wall time limit, 16 G memory, and 2 processor cores (= 4 hardware threads):
+`sbatch --time=08:00:00 --mem=16G --cpus-per-task=4 /reference/containers/RStudio/3.5.0/rstudio.job`
+* Copying the job script to a directory one has write access to and modifying the appropriate SLURM #SBATCH directives.
+* Using the [Ceres Job Script Generator](http://go.usa.gov/x9fH7) to create a new job RStudio Server job script
+  * In the **Job Script Template** drop down menu, select RStudio Server
