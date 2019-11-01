@@ -1,11 +1,11 @@
 #### Table of Contents
-* [Introduction](*introduction)
-* [SCINet Options for RStudio](*scinet-options-for-rstudio)
-* [RStudio Server on Ceres](*rstudio-server-on-ceres)
-* [Starting RStudio Server](*starting-rstudio-server)
-* [Stopping RStudio Server](*stopping-rstudio-server)
-* [SSH Port Forwarding (instead of VPN)](*ssh-port-forwarding-instead-of-vpn)
-* [Requesting Additional Compute Resources](*requesting-additional-compute-resources)
+* [Introduction](#introduction)
+* [SCINet Options for RStudio](#scinet-options-for-rstudio)
+* [RStudio Server on Ceres](#rstudio-server-on-ceres)
+* [Starting RStudio Server](#starting-rstudio-server)
+* [Stopping RStudio Server](#stopping-rstudio-server)
+* [SSH Port Forwarding (instead of VPN)](#ssh-port-forwarding-instead-of-vpn)
+* [Requesting Additional Compute Resources](#requesting-additional-compute-resources)
 
 # Introduction
 
