@@ -25,8 +25,8 @@
     * [Parallel MPI Job](#parallel-mpi-job)
   * [Useful SLURM Commands](#useful-slurm-commands)
   * [Local Scratch Space on Large Memory Nodes](#local-scratch-space-on-large-memory-nodes)
-* [Compiling Software, Installing R/Perl/Python Packages and Using Containers](#compiling-software,-installing-r/perl/python-packages-and-using-containers)
-* [Citation/Acknowledgment](#citation/acknowledgment)
+* [Compiling Software, Installing R/Perl/Python Packages and Using Containers](#compiling-software-installing-rperlpython-packages-and-using-containers)
+* [Citation/Acknowledgment](#citationacknowledgment)
 
 # Technical Overview
 
