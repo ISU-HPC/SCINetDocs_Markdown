@@ -81,3 +81,4 @@ When done using RStudio Server, terminate the job by:
 
 4. (*If using VPN*) Point your web browser to the listed hostname / port (in this example, http://sn-cn-6-0:57088), then enter your SCINet user name and the temporary password (valid only for this job only; in this example *4wjRJfpIvQDtKdDZpmzY*)
 
+![](/assets/img/RStudio.png)
