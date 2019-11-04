@@ -86,6 +86,9 @@ When done using RStudio Server, terminate the job by:
 # Stopping RStudio Server
 
 1. Click the Quit Session (“power”) button in the top-right corner of the RStudio window (see picture), or select “File > Quit Session...”
+
+![](/assets/img/RStudio2.gif)
+
 2. After the “R Session has Ended” window appears, cancel the SLURM job from the Ceres command line. E.g., if the job ID is 214664:
 `[jane.user@sn-cn-8-1 ~]$ scancel -f 214664`
   * Be sure to specify the scancel -f / --full option as demonstrated above.
@@ -97,6 +100,9 @@ When done using RStudio Server, terminate the job by:
 1. Open a new PuTTY window
 2. In Session > Host Name, enter: **login.scinet.science**
 3. In the category: Connection > SSH > Tunnels, enter 8787 in Source Port, the Destination hostname:port listed in the job script output (in this example: **sn-cn-6-0:57088**), click “Add”, then click “Open”.
+
+![](/assets/img/putty-annotated.png)
+
 4. Point your browser to http://localhost:8787. Enter your SCINet user name, and one-time password listed in the job script output file.
 
 ## macOS / Linux users
